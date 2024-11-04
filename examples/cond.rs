@@ -9,14 +9,14 @@ use bevy::{
     },
     ui,
 };
-use do_you_believe::{Cond, CondPlugin, WithChildren};
+use do_you_believe::{Cond, EffectPlugin, WithChildren};
 
 fn main() {
     App::new()
         .init_resource::<Counter>()
         .add_plugins((
             DefaultPlugins.set(ImagePlugin::default_nearest()),
-            CondPlugin,
+            EffectPlugin,
         ))
         .add_systems(Startup, (setup, setup_view_root))
         .add_systems(Update, (close_on_esc, rotate, update_counter))

@@ -82,3 +82,13 @@ impl<C: ChildTuple + Send + Sync + 'static> Command for WithChildrenCommand<C> {
         children.create_children(&mut entt);
     }
 }
+
+pub trait LazyChildTuple {
+    fn create(&mut self, entity: &mut EntityWorldMut);
+}
+
+impl<C: ChildTuple, F: Fn() -> C> LazyChildTuple for F {
+    fn create(&mut self, entity: &mut EntityWorldMut) {
+        self().create(entity);
+    }
+}
