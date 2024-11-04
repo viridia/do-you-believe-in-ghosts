@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// Conditional control-flow node that implements a C-like "switch" statement.
-pub struct Switch<P: PartialEq + Clone, M, ValueFn: IntoSystem<(), P, M>> {
+pub struct Switch<P, M, ValueFn: IntoSystem<(), P, M>> {
     switch_index: usize,
     value_fn: Option<ValueFn>,
     value_sys: Option<SystemId<(), P>>,
@@ -18,7 +18,7 @@ pub struct Switch<P: PartialEq + Clone, M, ValueFn: IntoSystem<(), P, M>> {
 }
 
 impl<
-        P: PartialEq + Clone + Send + Sync + 'static,
+        P: PartialEq + Send + Sync + 'static,
         M: Send + Sync + 'static,
         ValueFn: IntoSystem<(), P, M> + Send + Sync + 'static,
     > Switch<P, M, ValueFn>
@@ -53,7 +53,7 @@ impl<
     }
 }
 
-impl<P: PartialEq + Clone + 'static, M, ValueFn: IntoSystem<(), P, M> + 'static> AnyEffect
+impl<P: PartialEq + 'static, M, ValueFn: IntoSystem<(), P, M> + 'static> AnyEffect
     for Switch<P, M, ValueFn>
 {
     fn update(&mut self, world: &mut World, entity: Entity) {

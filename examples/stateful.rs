@@ -47,19 +47,6 @@ fn setup_view_root(mut commands: Commands) {
                 .case(GameState::Pause, || (Text::new("Paused"),))
                 .fallback(|| (Text::new("Playing"),))
                 .build(),
-            //     || {
-            //         (
-            //             (
-            //                 Node {
-            //                     border: ui::UiRect::all(ui::Val::Px(7.)),
-            //                     ..default()
-            //                 },
-            //                 BorderColor(css::MAROON.into()),
-            //                 WithChildren((Text::new("extra "),)),
-            //             ),
-            //             Text::new("thirsty"),
-            //         )
-            //     },
             (
                 Node {
                     border: ui::UiRect::all(ui::Val::Px(3.)),
