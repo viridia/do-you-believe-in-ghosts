@@ -1,10 +1,14 @@
 use bevy::{
     ecs::component::{ComponentHooks, StorageType},
-    prelude::{BuildChildren, Bundle, ChildBuild, Command, Component, Entity, EntityWorldMut},
+    prelude::{
+        BuildChildren, Bundle, ChildBuild, Command, Component, Entity, EntityCommands,
+        EntityWorldMut,
+    },
 };
 
 pub trait ChildTuple {
     fn create(self, entity: &mut EntityWorldMut);
+    fn create_commands(self, entity: &mut EntityCommands);
 }
 
 macro_rules! impl_child_tuple {
@@ -19,12 +23,21 @@ macro_rules! impl_child_tuple {
                     )*
                 });
             }
+
+            fn create_commands(self: Self, entity: &mut EntityCommands) {
+                entity.with_children(|parent| {
+                    $(
+                        parent.spawn(self.$idx);
+                    )*
+                });
+            }
         }
     };
 }
 
 impl ChildTuple for () {
     fn create(self, _: &mut EntityWorldMut) {}
+    fn create_commands(self, _: &mut EntityCommands) {}
 }
 
 impl_child_tuple!(B0, 0);
@@ -90,5 +103,15 @@ pub trait LazyChildTuple {
 impl<C: ChildTuple, F: Fn() -> C> LazyChildTuple for F {
     fn create(&mut self, entity: &mut EntityWorldMut) {
         self().create(entity);
+    }
+}
+
+pub trait BuildChildrenFn {
+    fn children<C: ChildTuple>(&mut self, children: C);
+}
+
+impl BuildChildrenFn for EntityCommands<'_> {
+    fn children<C: ChildTuple>(&mut self, children: C) {
+        children.create_commands(self);
     }
 }

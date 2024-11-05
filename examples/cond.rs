@@ -9,7 +9,7 @@ use bevy::{
     },
     ui,
 };
-use do_you_believe::{Cond, EffectPlugin, WithChildren};
+use do_you_believe::{BuildChildrenFn, Cond, EffectPlugin, WithChildren};
 
 fn main() {
     App::new()
@@ -30,20 +30,22 @@ struct Shape;
 const X_EXTENT: f32 = 14.5;
 
 fn setup_view_root(mut commands: Commands) {
-    commands.spawn((
-        Node {
-            left: ui::Val::Px(0.),
-            top: ui::Val::Px(0.),
-            right: ui::Val::Px(0.),
-            // bottom: ui::Val::Px(0.),
-            position_type: ui::PositionType::Absolute,
-            display: ui::Display::Flex,
-            flex_direction: ui::FlexDirection::Row,
-            border: ui::UiRect::all(ui::Val::Px(3.)),
-            ..default()
-        },
-        BorderColor(css::ALICE_BLUE.into()),
-        WithChildren((
+    commands
+        .spawn((
+            Node {
+                left: ui::Val::Px(0.),
+                top: ui::Val::Px(0.),
+                right: ui::Val::Px(0.),
+                // bottom: ui::Val::Px(0.),
+                position_type: ui::PositionType::Absolute,
+                display: ui::Display::Flex,
+                flex_direction: ui::FlexDirection::Row,
+                border: ui::UiRect::all(ui::Val::Px(3.)),
+                ..default()
+            },
+            BorderColor(css::ALICE_BLUE.into()),
+        ))
+        .children((
             Text::new("Goodbye, "),
             Cond::new(
                 |counter: Res<Counter>| counter.count & 1 == 0,
@@ -71,8 +73,7 @@ fn setup_view_root(mut commands: Commands) {
                 BorderColor(css::LIME.into()),
                 WithChildren((Text::new("!!"),)),
             ),
-        )),
-    ));
+        ));
 }
 
 #[derive(Resource, Default)]
