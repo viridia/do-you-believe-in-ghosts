@@ -9,7 +9,7 @@ use bevy::{
     },
     ui,
 };
-use do_you_believe::{EffectPlugin, WithChildren, WithEffect};
+use do_you_believe::{BuildChildrenFn, EffectPlugin, EntityWithEffect, WithChildren};
 
 fn main() {
     App::new()
@@ -30,30 +30,33 @@ struct Shape;
 const X_EXTENT: f32 = 14.5;
 
 fn setup_view_root(mut commands: Commands) {
-    commands.spawn((
-        Node {
-            left: ui::Val::Px(0.),
-            top: ui::Val::Px(0.),
-            right: ui::Val::Px(0.),
-            position_type: ui::PositionType::Absolute,
-            display: ui::Display::Flex,
-            flex_direction: ui::FlexDirection::Row,
-            border: ui::UiRect::all(ui::Val::Px(3.)),
-            ..default()
-        },
-        BorderColor(css::ALICE_BLUE.into()),
-        WithEffect::new(
+    commands
+        .spawn((
+            Node {
+                left: ui::Val::Px(0.),
+                top: ui::Val::Px(0.),
+                right: ui::Val::Px(0.),
+                position_type: ui::PositionType::Absolute,
+                display: ui::Display::Flex,
+                flex_direction: ui::FlexDirection::Row,
+                border: ui::UiRect::all(ui::Val::Px(3.)),
+                ..default()
+            },
+            BorderColor(css::ALICE_BLUE.into()),
+        ))
+        .with_effect(
             |counter: Res<Counter>| counter.count & 1 == 0,
             |even, entity| {
-                let mut border = entity.get_mut::<BorderColor>().unwrap();
-                border.0 = if even {
-                    css::MAROON.into()
-                } else {
-                    css::LIME.into()
-                };
+                entity.entry::<BorderColor>().and_modify(|mut border| {
+                    border.0 = if even {
+                        css::MAROON.into()
+                    } else {
+                        css::LIME.into()
+                    };
+                });
             },
-        ),
-        WithChildren((
+        )
+        .children((
             Text::new("Goodbye, "),
             Text::new(" world!"),
             (
@@ -64,8 +67,7 @@ fn setup_view_root(mut commands: Commands) {
                 BorderColor(css::LIME.into()),
                 WithChildren((Text::new("!!"),)),
             ),
-        )),
-    ));
+        ));
 }
 
 #[derive(Resource, Default)]

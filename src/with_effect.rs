@@ -113,3 +113,42 @@ impl<P: 'static + PartialEq + Clone, M, EffectFn: Fn(P, &mut EntityWorldMut)> An
             .queue(UnregisterSystemCommand(self.deps_sys));
     }
 }
+
+pub trait EntityWithEffect {
+    fn with_effect<
+        P: PartialEq + Clone + Send + Sync + 'static,
+        M: Send + Sync + 'static,
+        DepsFn: IntoSystem<(), P, M> + 'static,
+        EffectFn: Fn(P, &mut EntityWorldMut) + Send + Sync + 'static,
+    >(
+        &mut self,
+        deps_fn: DepsFn,
+        effect_fn: EffectFn,
+    ) -> &mut Self;
+}
+
+impl EntityWithEffect for EntityCommands<'_> {
+    fn with_effect<
+        P: PartialEq + Clone + Send + Sync + 'static,
+        M: Send + Sync + 'static,
+        DepsFn: IntoSystem<(), P, M> + 'static,
+        EffectFn: Fn(P, &mut EntityWorldMut) + Send + Sync + 'static,
+    >(
+        &mut self,
+        deps_fn: DepsFn,
+        effect_fn: EffectFn,
+    ) -> &mut Self {
+        let deps_sys = self.commands().register_system(deps_fn);
+        let target = self.id();
+        self.commands()
+            .spawn(EffectCell(Arc::new(Mutex::new(WithEffectAction {
+                target,
+                deps: None,
+                deps_sys,
+                effect_fn,
+                marker: std::marker::PhantomData::<M>,
+            }))))
+            .set_parent(target);
+        self
+    }
+}

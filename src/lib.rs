@@ -8,4 +8,4 @@ pub use children::{BuildChildrenFn, ChildTuple, WithChildren, WithChildrenComman
 pub use cond::Cond;
 pub use effect::{EffectCell, EffectPlugin};
 pub use switch::Switch;
-pub use with_effect::WithEffect;
+pub use with_effect::{EntityWithEffect, WithEffect};
