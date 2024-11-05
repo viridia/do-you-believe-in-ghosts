@@ -883,6 +883,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_plumage"
+version = "0.1.0"
+
+[[package]]
 name = "bevy_pbr"
 version = "0.15.0-rc.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1902,6 +1906,7 @@ name = "do-you-believe"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_mod_plumage",
 ]
 
 [[package]]

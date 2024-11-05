@@ -3,5 +3,12 @@ name = "do-you-believe"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+members = ["crates/*"]
+
+[workspace.dependencies]
+bevy_mod_plumage = { path = "crates/bevy_mod_plumage" }
+
 [dependencies]
 bevy = { version = "0.15.0-dev", features = ["ghost_nodes"] }
+bevy_mod_plumage = { workspace = true }
