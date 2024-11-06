@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 use bevy::{
     color::palettes::{self, css},
+    ecs::world::DeferredWorld,
     prelude::*,
     render::{
         render_asset::RenderAssetUsages,
@@ -9,7 +10,7 @@ use bevy::{
     },
     ui,
 };
-use do_you_believe::{BuildChildrenFn, EffectPlugin, For};
+use do_you_believe::{CreateMutable, EffectPlugin, EntityWithEffect, For, Mutable};
 
 fn main() {
     App::new()
@@ -46,11 +47,48 @@ fn setup_view_root(mut commands: Commands) {
             },
             BorderColor(css::ALICE_BLUE.into()),
         ))
-        .children((For::each(
-            |list: Res<List>| list.items.clone().into_iter(),
-            |suit| (Text::new(suit),),
-            || (Text::new("No items"),),
-        ),));
+        .with_children(|builder| {
+            let selected: Mutable<Option<String>> = builder.create_mutable(None);
+            builder.spawn(For::each(
+                |list: Res<List>| list.items.clone().into_iter(),
+                move |suit, builder| {
+                    let suit = suit.clone();
+                    let suit2 = suit.clone();
+                    let suit3 = suit.clone();
+                    builder
+                        .spawn(Node {
+                            border: ui::UiRect::all(ui::Val::Px(3.)),
+                            ..default()
+                        })
+                        .with_effect(
+                            move |world: DeferredWorld| match selected.as_ref(&world) {
+                                Some(s) => *s == suit3,
+                                None => false,
+                            },
+                            |selected, entity| {
+                                entity.entry::<BorderColor>().and_modify(|mut border| {
+                                    border.0 = if selected {
+                                        css::MAROON.into()
+                                    } else {
+                                        css::LIME.into()
+                                    };
+                                });
+                            },
+                        )
+                        .observe(
+                            move |_trigger: Trigger<Pointer<Down>>, mut world: DeferredWorld| {
+                                selected.set_clone(&mut world, Some(suit.clone()));
+                            },
+                        )
+                        .with_children(|builder| {
+                            builder.spawn(Text::new(suit2));
+                        });
+                },
+                |builder| {
+                    builder.spawn(Text::new("No items"));
+                },
+            ));
+        });
 }
 
 const SUITS: &[&str] = &["hearts", "spades", "clubs", "diamonds"];

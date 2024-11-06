@@ -6,10 +6,9 @@ use std::{
 use bevy::{ecs::system::SystemId, prelude::*, ui::experimental::GhostNode};
 
 use crate::{
-    children::LazyChildTuple,
     effect::{AnyEffect, UnregisterSystemCommand},
     lcs::lcs,
-    ChildTuple, EffectCell,
+    EffectCell,
 };
 
 pub struct For {}
@@ -20,9 +19,8 @@ impl For {
         Item: Send + Sync + 'static + Clone + PartialEq,
         ItemIter: 'static + Iterator<Item = Item>,
         ItemFn: IntoSystem<(), ItemIter, M> + Send + Sync + 'static,
-        C: ChildTuple + 'static,
-        EachFn: Send + Sync + 'static + Fn(&Item) -> C,
-        FallbackFn: LazyChildTuple + Send + Sync + 'static,
+        EachFn: Send + Sync + 'static + Fn(&Item, &mut ChildBuilder),
+        FallbackFn: Fn(&mut ChildBuilder) + Send + Sync + 'static,
     >(
         items_fn: ItemFn,
         each: EachFn,
@@ -45,9 +43,8 @@ impl For {
         CmpFn: Send + Sync + 'static + Fn(&Item, &Item) -> bool,
         ItemIter: 'static + Iterator<Item = Item>,
         ItemFn: IntoSystem<(), ItemIter, M> + Send + Sync + 'static,
-        C: ChildTuple + 'static,
-        EachFn: Send + Sync + 'static + Fn(&Item) -> C,
-        FallbackFn: LazyChildTuple + Send + Sync + 'static,
+        EachFn: Send + Sync + 'static + Fn(&Item, &mut ChildBuilder),
+        FallbackFn: Fn(&mut ChildBuilder) + Send + Sync + 'static,
     >(
         items_fn: ItemFn,
         cmp: CmpFn,
@@ -83,9 +80,8 @@ struct ForEachEffect<
     CmpFn: Fn(&Item, &Item) -> bool,
     ItemIter: Iterator<Item = Item>,
     ItemFn: IntoSystem<(), ItemIter, M>,
-    C: ChildTuple,
-    EachFn: Send + Sync + 'static + Fn(&Item) -> C,
-    FallbackFn: LazyChildTuple + Send + Sync + 'static,
+    EachFn: Send + Sync + 'static + Fn(&Item, &mut ChildBuilder),
+    FallbackFn: Fn(&mut ChildBuilder) + Send + Sync + 'static,
 > where
     Self: Send + Sync,
 {
@@ -104,10 +100,9 @@ impl<
         CmpFn: Fn(&Item, &Item) -> bool + Send + Sync + 'static,
         ItemIter: Iterator<Item = Item>,
         ItemFn: IntoSystem<(), ItemIter, M> + Send + Sync + 'static,
-        C: ChildTuple,
-        EachFn: Send + Sync + 'static + Fn(&Item) -> C,
-        FallbackFn: LazyChildTuple + Send + Sync + 'static,
-    > ForEachEffect<M, Item, CmpFn, ItemIter, ItemFn, C, EachFn, FallbackFn>
+        EachFn: Send + Sync + 'static + Fn(&Item, &mut ChildBuilder),
+        FallbackFn: Fn(&mut ChildBuilder) + Send + Sync + 'static,
+    > ForEachEffect<M, Item, CmpFn, ItemIter, ItemFn, EachFn, FallbackFn>
 {
     /// Uses the sequence of key values to match the previous array items with the updated
     /// array items. Matching items are patched, other items are inserted or deleted.
@@ -123,7 +118,6 @@ impl<
     fn build_recursive(
         &self,
         world: &mut World,
-        // owner: Entity,
         prev_state: &[ListItem<Item>],
         prev_range: Range<usize>,
         next_items: &[Item],
@@ -148,7 +142,9 @@ impl<
             // Build new elements
             for i in next_range {
                 let child_id = world.spawn(GhostNode::default()).id();
-                (self.each)(&next_items[i]).create(&mut world.entity_mut(child_id));
+                world.commands().entity(child_id).with_children(|builder| {
+                    (self.each)(&next_items[i], builder);
+                });
                 out.push(ListItem {
                     child: child_id,
                     item: next_items[i].clone(),
@@ -185,7 +181,9 @@ impl<
             // Insertions
             for i in next_range.start..next_start {
                 let child_id = world.spawn(GhostNode::default()).id();
-                (self.each)(&next_items[i]).create(&mut world.entity_mut(child_id));
+                world.commands().entity(child_id).with_children(|builder| {
+                    (self.each)(&next_items[i], builder);
+                });
                 out.push(ListItem {
                     child: child_id,
                     item: next_items[i].clone(),
@@ -225,7 +223,9 @@ impl<
             // Insertions
             for i in next_end..next_range.end {
                 let child_id = world.spawn(GhostNode::default()).id();
-                (self.each)(&next_items[i]).create(&mut world.entity_mut(child_id));
+                world.commands().entity(child_id).with_children(|builder| {
+                    (self.each)(&next_items[i], builder);
+                });
                 out.push(ListItem {
                     child: child_id,
                     item: next_items[i].clone(),
@@ -241,10 +241,9 @@ impl<
         CmpFn: Fn(&Item, &Item) -> bool + Send + Sync + 'static,
         ItemIter: Iterator<Item = Item> + 'static,
         ItemFn: IntoSystem<(), ItemIter, M> + Send + Sync + 'static,
-        C: ChildTuple,
-        EachFn: Send + Sync + 'static + Fn(&Item) -> C,
-        FallbackFn: LazyChildTuple + Send + Sync + 'static,
-    > AnyEffect for ForEachEffect<M, Item, CmpFn, ItemIter, ItemFn, C, EachFn, FallbackFn>
+        EachFn: Send + Sync + 'static + Fn(&Item, &mut ChildBuilder),
+        FallbackFn: Fn(&mut ChildBuilder) + Send + Sync + 'static,
+    > AnyEffect for ForEachEffect<M, Item, CmpFn, ItemIter, ItemFn, EachFn, FallbackFn>
 {
     fn update(&mut self, world: &mut World, parent: Entity) {
         let mut first = false;
@@ -279,15 +278,18 @@ impl<
 
         if next_len == 0 {
             if prev_len > 0 || first {
+                // Transitioning from non-empty to empty, generate fallback.
                 world.entity_mut(parent).despawn_descendants();
-                self.fallback.create(&mut world.entity_mut(parent));
+                world.commands().entity(parent).with_children(|builder| {
+                    (self.fallback)(builder);
+                });
             }
         } else {
             if prev_len == 0 {
+                // Transitioning from non-empty to empty, delete fallback.
                 world.entity_mut(parent).despawn_descendants();
             }
             world.entity_mut(parent).replace_children(&children);
-            self.state = next_state;
         }
     }
 
