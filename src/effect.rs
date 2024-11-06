@@ -14,7 +14,7 @@ pub struct EffectCell(pub(crate) Arc<Mutex<dyn AnyEffect + 'static + Sync + Send
 
 pub(crate) trait AnyEffect {
     fn update(&mut self, world: &mut World, entity: Entity);
-    fn cleanup(&mut self, world: &mut DeferredWorld, entity: Entity);
+    fn cleanup(&self, world: &mut DeferredWorld, entity: Entity);
 }
 
 pub struct EffectPlugin;

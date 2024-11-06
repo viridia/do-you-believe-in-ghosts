@@ -107,7 +107,7 @@ impl<P: 'static + PartialEq + Clone, M, EffectFn: Fn(P, &mut EntityWorldMut)> An
         }
     }
 
-    fn cleanup(&mut self, world: &mut DeferredWorld, _entity: Entity) {
+    fn cleanup(&self, world: &mut DeferredWorld, _entity: Entity) {
         world
             .commands()
             .queue(UnregisterSystemCommand(self.deps_sys));

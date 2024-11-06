@@ -91,7 +91,7 @@ impl<P: PartialEq + 'static, M, ValueFn: IntoSystem<(), P, M> + 'static> AnyEffe
         }
     }
 
-    fn cleanup(&mut self, world: &mut bevy::ecs::world::DeferredWorld, _entity: Entity) {
+    fn cleanup(&self, world: &mut bevy::ecs::world::DeferredWorld, _entity: Entity) {
         if let Some(test_id) = self.value_sys {
             world.commands().queue(UnregisterSystemCommand(test_id));
         }

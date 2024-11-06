@@ -71,7 +71,7 @@ impl<M, TestFn: IntoSystem<(), bool, M> + 'static, Pos: LazyChildTuple, Neg: Laz
         }
     }
 
-    fn cleanup(&mut self, world: &mut DeferredWorld, _entity: Entity) {
+    fn cleanup(&self, world: &mut DeferredWorld, _entity: Entity) {
         if let Some(test_id) = self.test_id {
             world.commands().queue(UnregisterSystemCommand(test_id));
         }
